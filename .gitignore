@@ -31,7 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### MISC ###
 .notes/
 .notes/**
-
+.history/
+.history/**
 
