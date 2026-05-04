@@ -5,6 +5,7 @@ import com.pismochallenge.api.dto.response.TransactionResponse;
 import com.pismochallenge.api.entity.Account;
 import com.pismochallenge.api.entity.OperationType;
 import com.pismochallenge.api.entity.Transaction;
+import com.pismochallenge.api.event.TransactionCreatedEvent;
 import com.pismochallenge.api.exception.ResourceNotFoundException;
 import com.pismochallenge.api.repository.AccountRepository;
 import com.pismochallenge.api.repository.OperationTypeRepository;
@@ -13,6 +14,7 @@ import com.pismochallenge.api.strategy.AmountSignResolver;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,13 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final OperationTypeRepository operationTypeRepository;
     private final AmountSignResolver amountSignResolver;
+
+    /**
+     * Spring event bus. {@code SqsTransactionEventListener} subscribes in the
+     * {@code eks} profile and forwards each event to the
+     * {@code pismo-transaction-events} SQS queue after the DB transaction commits.
+     */
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public TransactionResponse createTransaction(CreateTransactionRequest request) {
@@ -54,6 +63,8 @@ public class TransactionService {
 
         transaction = transactionRepository.save(transaction);
         log.info("Transaction created with ID: {}", transaction.getTransactionId());
+
+        applicationEventPublisher.publishEvent(new TransactionCreatedEvent(transaction));
 
         return toResponse(transaction);
     }

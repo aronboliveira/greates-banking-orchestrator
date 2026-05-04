@@ -1,15 +1,20 @@
 package com.pismochallenge.api.service;
 
+import com.pismochallenge.api.cipher.DocumentNumberCipher;
+import com.pismochallenge.api.cipher.NoOpDocumentNumberCipher;
 import com.pismochallenge.api.dto.request.CreateAccountRequest;
 import com.pismochallenge.api.dto.response.AccountResponse;
 import com.pismochallenge.api.entity.Account;
+import com.pismochallenge.api.event.AccountCreatedEvent;
 import com.pismochallenge.api.exception.ResourceNotFoundException;
 import com.pismochallenge.api.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 
@@ -22,6 +27,13 @@ class AccountServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    /** Real NoOp cipher: pass-through encode/decode covers the production code paths. */
+    @Spy
+    private DocumentNumberCipher documentNumberCipher = new NoOpDocumentNumberCipher();
+
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private AccountService accountService;
@@ -36,6 +48,9 @@ class AccountServiceTest {
         assertThat(response.accountId()).isEqualTo(1L);
         assertThat(response.documentNumber()).isEqualTo("12345678900");
         verify(accountRepository).save(any(Account.class));
+        verify(documentNumberCipher).encode("12345678900");
+        verify(documentNumberCipher).decode("12345678900");
+        verify(applicationEventPublisher).publishEvent(any(AccountCreatedEvent.class));
     }
 
     @Test
@@ -47,6 +62,7 @@ class AccountServiceTest {
 
         assertThat(response.accountId()).isEqualTo(1L);
         assertThat(response.documentNumber()).isEqualTo("12345678900");
+        verify(documentNumberCipher).decode("12345678900");
     }
 
     @Test

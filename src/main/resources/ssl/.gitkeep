@@ -1,0 +1,12 @@
+# Placeholder so the directory is committed to git.
+#
+# Before building the production Docker image, download the AWS RDS CA bundle:
+#
+#   curl -o src/main/resources/ssl/rds-ca-bundle.pem \
+#     https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+#
+# The Dockerfile copies the contents of this directory to /etc/ssl/certs/rds
+# inside the container so the JDBC driver can do sslmode=verify-full.
+#
+# DO NOT commit the .pem bundle if your security policy forbids vendor certs in
+# the repo — instead, fetch it in CI before `mvn package`.

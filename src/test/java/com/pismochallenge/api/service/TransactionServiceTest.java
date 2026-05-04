@@ -5,6 +5,7 @@ import com.pismochallenge.api.dto.response.TransactionResponse;
 import com.pismochallenge.api.entity.Account;
 import com.pismochallenge.api.entity.OperationType;
 import com.pismochallenge.api.entity.Transaction;
+import com.pismochallenge.api.event.TransactionCreatedEvent;
 import com.pismochallenge.api.exception.ResourceNotFoundException;
 import com.pismochallenge.api.repository.AccountRepository;
 import com.pismochallenge.api.repository.OperationTypeRepository;
@@ -19,6 +20,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -37,6 +39,8 @@ class TransactionServiceTest {
     private AccountRepository accountRepository;
     @Mock
     private OperationTypeRepository operationTypeRepository;
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     private TransactionService transactionService;
 
@@ -45,7 +49,8 @@ class TransactionServiceTest {
         AmountSignResolver resolver = new AmountSignResolver(
                 List.of(new DebitAmountSignStrategy(), new CreditAmountSignStrategy()));
         transactionService = new TransactionService(
-                transactionRepository, accountRepository, operationTypeRepository, resolver);
+                transactionRepository, accountRepository, operationTypeRepository,
+                resolver, applicationEventPublisher);
     }
 
     @ParameterizedTest
@@ -67,6 +72,7 @@ class TransactionServiceTest {
 
         assertThat(response.amount()).isNegative();
         assertThat(response.amount()).isEqualByComparingTo(new BigDecimal("-100.00"));
+        verify(applicationEventPublisher).publishEvent(any(TransactionCreatedEvent.class));
     }
 
     @Test
@@ -87,6 +93,7 @@ class TransactionServiceTest {
 
         assertThat(response.amount()).isPositive();
         assertThat(response.amount()).isEqualByComparingTo(new BigDecimal("123.45"));
+        verify(applicationEventPublisher).publishEvent(any(TransactionCreatedEvent.class));
     }
 
     @Test
