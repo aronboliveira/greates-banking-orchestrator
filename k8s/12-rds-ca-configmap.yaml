@@ -1,0 +1,28 @@
+# OPERATOR ACTION: this file is a placeholder. Apply the RDS CA bundle as a
+# ConfigMap mounted into the pod.
+#
+# Run this once before applying the Deployment:
+#
+#   curl -o /tmp/rds-ca-bundle.pem \
+#     https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+#
+#   kubectl create configmap rds-ca-bundle \
+#     --from-file=rds-ca-bundle.pem=/tmp/rds-ca-bundle.pem \
+#     -n pismo-api
+#
+# This file describes the structure for reference. Re-run the command above
+# whenever AWS rotates the bundle (see RDS console for current expiration).
+#
+# Alternative: bake the PEM into the container image (Dockerfile already
+# COPYs src/main/resources/ssl/ to /etc/ssl/certs/rds). If you choose that
+# approach, this manifest is unnecessary.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rds-ca-bundle
+  namespace: pismo-api
+data:
+  rds-ca-bundle.pem: |
+    # PASTE THE CONTENT OF global-bundle.pem HERE (multi-line, indented 4 spaces)
+    # OR delete this file and use the kubectl create configmap command above.

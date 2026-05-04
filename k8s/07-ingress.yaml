@@ -1,0 +1,43 @@
+# Application Load Balancer ingress. Requires AWS Load Balancer Controller
+# installed (handoff.md §9.4).
+#
+# OPERATOR ACTION (handoff.md §9.11):
+#   1. Create an ACM certificate (ACM Console → Request public certificate)
+#      for the host below, validate via DNS, and copy the certificate ARN
+#      into the certificate-arn annotation.
+#   2. Create the WAF Web ACL (handoff.md §13.2 in JSON file → waf section)
+#      and copy its ARN into the wafv2-acl-arn annotation.
+#   3. Replace the host with your real domain.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pismo-api-ingress
+  namespace: pismo-api
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443},{"HTTP":80}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT_ID:certificate/CERT_ARN
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
+    alb.ingress.kubernetes.io/load-balancer-attributes: "idle_timeout.timeout_seconds=60,routing.http.drop_invalid_header_fields.enabled=true"
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:REGION:ACCOUNT_ID:regional/webacl/pismo-waf/WAF_ID
+    alb.ingress.kubernetes.io/tags: "Project=pismo-challenge,Environment=production"
+spec:
+  rules:
+    - host: api.YOUR_DOMAIN.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pismo-api-service
+                port:
+                  number: 8080

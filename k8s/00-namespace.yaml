@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pismo-api
+  labels:
+    # Pod Security Standards — restricted profile enforced at namespace level.
+    # See handoff.md §9.10. Every pod must run as non-root, with read-only root
+    # filesystem, dropped capabilities, and a seccomp profile.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.32
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+    project: pismo-challenge
+    environment: production
