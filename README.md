@@ -112,7 +112,7 @@ node node_modules/playwright/cli.js install chromium
 Docker Compose smoke check:
 
 ```bash
-docker compose up --build -d
+docker compose up --build --wait
 curl -f http://localhost:8080/actuator/health
 curl -I http://localhost:5173
 docker compose down
@@ -121,7 +121,7 @@ docker compose down
 Conflict-safe smoke check when `5432`, `8080`, or `5173` are already in use:
 
 ```bash
-DB_PORT=5433 API_PORT=8081 WEB_PORT=5174 VITE_API_BASE_URL=http://localhost:8081 docker compose up --build -d
+DB_PORT=5433 API_PORT=8081 WEB_PORT=5174 VITE_API_BASE_URL=http://localhost:8081 docker compose up --build --wait
 curl -f http://localhost:8081/actuator/health
 curl -I http://localhost:5174
 docker compose down
@@ -231,7 +231,7 @@ npm run test:e2e
 Smoke test com Compose:
 
 ```bash
-docker compose up --build -d
+docker compose up --build --wait
 curl -f http://localhost:8080/actuator/health
 curl -I http://localhost:5173
 docker compose down
@@ -322,7 +322,7 @@ npm run test:e2e
 Smoke test con Compose:
 
 ```bash
-docker compose up --build -d
+docker compose up --build --wait
 curl -f http://localhost:8080/actuator/health
 curl -I http://localhost:5173
 docker compose down
@@ -413,7 +413,7 @@ npm run test:e2e
 Compose Smoke Test:
 
 ```bash
-docker compose up --build -d
+docker compose up --build --wait
 curl -f http://localhost:8080/actuator/health
 curl -I http://localhost:5173
 docker compose down
@@ -504,7 +504,7 @@ npm run test:e2e
 Smoke test Compose :
 
 ```bash
-docker compose up --build -d
+docker compose up --build --wait
 curl -f http://localhost:8080/actuator/health
 curl -I http://localhost:5173
 docker compose down
@@ -595,7 +595,7 @@ npm run test:e2e
 Compose 冒烟测试：
 
 ```bash
-docker compose up --build -d
+docker compose up --build --wait
 curl -f http://localhost:8080/actuator/health
 curl -I http://localhost:5173
 docker compose down
