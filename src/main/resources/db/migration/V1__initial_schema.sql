@@ -1,4 +1,4 @@
--- Initial schema for the pismo-challenge-api on Amazon RDS Aurora PostgreSQL.
+-- Initial schema for the greatest-banking-orchestrator-api on Amazon RDS Aurora PostgreSQL.
 -- This migration replaces Hibernate's auto-DDL (which is only used in the
 -- default profile / Docker Compose). In the eks profile, Hibernate runs with
 -- ddl-auto=validate and Flyway is the source of truth.

@@ -8,8 +8,8 @@
 		<version>4.0.5</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.pismochallenge</groupId>
-	<artifactId>pismo-challenge-api</artifactId>
+	<groupId>com.greatestbanking.orchestrator</groupId>
+	<artifactId>greatest-banking-orchestrator-api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
 	<description/>
@@ -56,6 +56,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -162,7 +166,7 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<scope>test</scope>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -182,6 +186,29 @@
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.cucumber</groupId>
+			<artifactId>cucumber-java</artifactId>
+			<version>7.20.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.cucumber</groupId>
+			<artifactId>cucumber-spring</artifactId>
+			<version>7.20.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.cucumber</groupId>
+			<artifactId>cucumber-junit-platform-engine</artifactId>
+			<version>7.20.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-suite</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -246,19 +273,28 @@
 				<configuration>
 					<excludes>
 						<!-- existing exclusions -->
-						<exclude>com/pismochallenge/api/PismoChallengeApiApplication.class</exclude>
-						<exclude>com/pismochallenge/api/entity/**</exclude>
-						<exclude>com/pismochallenge/api/dto/**</exclude>
-						<exclude>com/pismochallenge/api/config/ResilienceProperties*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/GreatestBankingOrchestratorApiApplication.class</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/entity/**</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/dto/**</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/config/ResilienceProperties*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/config/Security*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/config/DataSourceConfig*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/config/JacksonConfig*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/config/MailConfig*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/auth/**</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/notification/**</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/controller/AuthController*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/controller/UserProfileController*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/service/AuthService*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/service/UserProfileService*</exclude>
 						<!-- AWS integration (profile-isolated, no default-profile execution) -->
-						<exclude>com/pismochallenge/api/config/Aws*</exclude>
-						<exclude>com/pismochallenge/api/config/Security*</exclude>
-						<exclude>com/pismochallenge/api/security/**</exclude>
-						<exclude>com/pismochallenge/api/audit/**</exclude>
-						<exclude>com/pismochallenge/api/dynamo/**</exclude>
-						<exclude>com/pismochallenge/api/sqs/**</exclude>
-						<exclude>com/pismochallenge/api/cipher/Kms*</exclude>
-						<exclude>com/pismochallenge/api/event/listener/Sqs*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/config/Aws*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/security/**</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/audit/**</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/dynamo/**</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/sqs/**</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/cipher/Kms*</exclude>
+						<exclude>com/greatestbanking/orchestrator/api/event/listener/Sqs*</exclude>
 					</excludes>
 				</configuration>
 				<executions>

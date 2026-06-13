@@ -6,24 +6,24 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: pismo-api-config
-  namespace: pismo-api
+  name: gbo-api-config
+  namespace: gbo-api
 data:
   SPRING_PROFILES_ACTIVE: "eks"
   AWS_REGION: "REGION"
 
   # KMS key alias for field-level PII encryption. Created in handoff.md §5.1.
   # OPERATOR ACTION: confirm the alias name matches the CMK you created.
-  AWS_KMS_FIELD_KEY_ARN: "arn:aws:kms:REGION:ACCOUNT_ID:alias/pismo-field-encryption-key"
+  AWS_KMS_FIELD_KEY_ARN: "arn:aws:kms:REGION:ACCOUNT_ID:alias/gbo-field-encryption-key"
 
   # S3 bucket for synchronous audit writes (Lambda is the primary path).
-  AUDIT_S3_BUCKET: "pismo-api-audit-logs-ACCOUNT_ID"
+  AUDIT_S3_BUCKET: "gbo-api-audit-logs-ACCOUNT_ID"
   AUDIT_S3_PREFIX: "transactions/"
 
   # SQS queues. The .fifo URL is optional — leave it blank if you don't deploy
   # the FIFO queue.
-  SQS_TRANSACTION_EVENTS_URL: "https://sqs.REGION.amazonaws.com/ACCOUNT_ID/pismo-transaction-events"
-  SQS_ACCOUNT_EVENTS_URL:     "https://sqs.REGION.amazonaws.com/ACCOUNT_ID/pismo-account-events.fifo"
+  SQS_TRANSACTION_EVENTS_URL: "https://sqs.REGION.amazonaws.com/ACCOUNT_ID/gbo-transaction-events"
+  SQS_ACCOUNT_EVENTS_URL:     "https://sqs.REGION.amazonaws.com/ACCOUNT_ID/gbo-account-events.fifo"
 
   # OAuth2 / JWT — OPERATOR ACTION: replace with your IdP's URLs (Cognito, Auth0, Okta).
   JWT_JWKS_URI:   "https://YOUR_IDP_DOMAIN/.well-known/jwks.json"

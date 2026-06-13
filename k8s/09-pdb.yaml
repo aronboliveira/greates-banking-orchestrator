@@ -1,12 +1,12 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: pismo-api-pdb
-  namespace: pismo-api
+  name: gbo-api-pdb
+  namespace: gbo-api
 spec:
   # At least 2 of 3 replicas must remain available during voluntary disruptions
   # (cluster autoscaler scale-downs, node drains, rolling updates).
   minAvailable: 2
   selector:
     matchLabels:
-      app: pismo-api
+      app: gbo-api

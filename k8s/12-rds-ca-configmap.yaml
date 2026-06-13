@@ -8,7 +8,7 @@
 #
 #   kubectl create configmap rds-ca-bundle \
 #     --from-file=rds-ca-bundle.pem=/tmp/rds-ca-bundle.pem \
-#     -n pismo-api
+#     -n gbo-api
 #
 # This file describes the structure for reference. Re-run the command above
 # whenever AWS rotates the bundle (see RDS console for current expiration).
@@ -21,7 +21,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: rds-ca-bundle
-  namespace: pismo-api
+  namespace: gbo-api
 data:
   rds-ca-bundle.pem: |
     # PASTE THE CONTENT OF global-bundle.pem HERE (multi-line, indented 4 spaces)

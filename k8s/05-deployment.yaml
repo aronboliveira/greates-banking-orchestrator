@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pismo-api
-  namespace: pismo-api
+  name: gbo-api
+  namespace: gbo-api
   labels:
-    app: pismo-api
+    app: gbo-api
 spec:
   replicas: 3
   revisionHistoryLimit: 5
   selector:
     matchLabels:
-      app: pismo-api
+      app: gbo-api
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -19,13 +19,13 @@ spec:
   template:
     metadata:
       labels:
-        app: pismo-api
+        app: gbo-api
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/actuator/prometheus"
         prometheus.io/port: "8080"
     spec:
-      serviceAccountName: pismo-api-sa
+      serviceAccountName: gbo-api-sa
       automountServiceAccountToken: true
       terminationGracePeriodSeconds: 60
 
@@ -41,7 +41,7 @@ spec:
       containers:
         - name: api
           # OPERATOR ACTION: replace ACCOUNT_ID and REGION. CI replaces IMAGE_TAG.
-          image: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/pismo-challenge-api:IMAGE_TAG
+          image: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/greatest-banking-orchestrator-api:IMAGE_TAG
           imagePullPolicy: Always
           ports:
             - name: http
@@ -92,9 +92,9 @@ spec:
 
           envFrom:
             - configMapRef:
-                name: pismo-api-config
+                name: gbo-api-config
             - secretRef:
-                name: pismo-db-secret
+                name: gbo-db-secret
 
           volumeMounts:
             - name: tmp
@@ -119,7 +119,7 @@ spec:
           whenUnsatisfiable: DoNotSchedule
           labelSelector:
             matchLabels:
-              app: pismo-api
+              app: gbo-api
 
       affinity:
         podAntiAffinity:
@@ -130,5 +130,5 @@ spec:
                   matchExpressions:
                     - key: app
                       operator: In
-                      values: [pismo-api]
+                      values: [gbo-api]
                 topologyKey: kubernetes.io/hostname

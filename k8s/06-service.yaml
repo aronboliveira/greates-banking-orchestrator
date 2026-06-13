@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: pismo-api-service
-  namespace: pismo-api
+  name: gbo-api-service
+  namespace: gbo-api
   labels:
-    app: pismo-api
+    app: gbo-api
 spec:
   type: ClusterIP
   selector:
-    app: pismo-api
+    app: gbo-api
   ports:
     - name: http
       port: 8080

@@ -3,7 +3,7 @@ FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 COPY mvnw pom.xml ./
 COPY .mvn .mvn
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+RUN chmod +x mvnw
 COPY src src
 RUN ./mvnw package -DskipTests -B
 
@@ -11,7 +11,7 @@ RUN ./mvnw package -DskipTests -B
 FROM eclipse-temurin:21-jre-alpine
 
 # Non-root user/group (security baseline; satisfies Pod Security restricted profile)
-RUN addgroup -S pismogroup && adduser -S pismouser -G pismogroup -u 1001
+RUN addgroup -S gbogroup && adduser -S gbouser -G gbogroup -u 1001
 
 WORKDIR /app
 
@@ -30,9 +30,9 @@ COPY src/main/resources/ssl /etc/ssl/certs/rds
 # in production (see k8s/05-deployment.yaml securityContext.readOnlyRootFilesystem).
 # These directories are mounted as emptyDir volumes by Kubernetes.
 RUN mkdir -p /tmp/tomcat /tmp/heapdump && \
-    chown -R pismouser:pismogroup /app /tmp/tomcat /tmp/heapdump
+    chown -R gbouser:gbogroup /app /tmp/tomcat /tmp/heapdump
 
-USER pismouser
+USER gbouser
 
 EXPOSE 8080
 

@@ -1,13 +1,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: pismo-api-hpa
-  namespace: pismo-api
+  name: gbo-api-hpa
+  namespace: gbo-api
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: pismo-api
+    name: gbo-api
   minReplicas: 3
   maxReplicas: 10
   metrics:

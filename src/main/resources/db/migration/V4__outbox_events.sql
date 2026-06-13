@@ -25,5 +25,5 @@ CREATE INDEX IF NOT EXISTS idx_outbox_pending
     ON outbox_events(status, created_at)
     WHERE status = 'PENDING';
 
--- pismo_app can read and write its own outbox rows (privileges already granted
+-- gbo_app can read and write its own outbox rows (privileges already granted
 -- in V2 ON ALL TABLES IN SCHEMA public).

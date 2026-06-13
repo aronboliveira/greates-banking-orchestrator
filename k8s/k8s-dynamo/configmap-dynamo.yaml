@@ -4,34 +4,34 @@
 #   kubectl apply -f k8s/00-namespace.yaml
 #   kubectl apply -f k8s/01-serviceaccount.yaml
 #   kubectl apply -f k8s/k8s-dynamo/configmap-dynamo.yaml      # use this instead of 04-configmap.yaml
-#   kubectl apply -f k8s/05-deployment.yaml                    # remove envFrom secretRef pismo-db-secret
+#   kubectl apply -f k8s/05-deployment.yaml                    # remove envFrom secretRef gbo-db-secret
 #   kubectl apply -f k8s/06-service.yaml ... etc.
 #
 # Skip k8s/03-external-secret.yaml entirely — DynamoDB needs no DB credentials,
-# only the IRSA role for table access (already attached to pismo-api-sa).
+# only the IRSA role for table access (already attached to gbo-api-sa).
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: pismo-api-config
-  namespace: pismo-api
+  name: gbo-api-config
+  namespace: gbo-api
 data:
   # eks-dynamo profile disables JPA/Flyway, enables DynamoDB beans
   SPRING_PROFILES_ACTIVE: "eks,eks-dynamo"
   AWS_REGION: "REGION"
 
   # DynamoDB table — created in handoff.md §17.3
-  DYNAMODB_TABLE_NAME: "pismo-api"
+  DYNAMODB_TABLE_NAME: "gbo-api"
 
   # KMS field key ARN (same as RDS profile — used for document_number encryption)
-  AWS_KMS_FIELD_KEY_ARN: "arn:aws:kms:REGION:ACCOUNT_ID:alias/pismo-field-encryption-key"
+  AWS_KMS_FIELD_KEY_ARN: "arn:aws:kms:REGION:ACCOUNT_ID:alias/gbo-field-encryption-key"
 
   # S3 audit bucket
-  AUDIT_S3_BUCKET: "pismo-api-audit-logs-ACCOUNT_ID"
+  AUDIT_S3_BUCKET: "gbo-api-audit-logs-ACCOUNT_ID"
   AUDIT_S3_PREFIX: "transactions/"
 
   # SQS (still used for notifications even with DynamoDB)
-  SQS_TRANSACTION_EVENTS_URL: "https://sqs.REGION.amazonaws.com/ACCOUNT_ID/pismo-transaction-events"
-  SQS_ACCOUNT_EVENTS_URL:     "https://sqs.REGION.amazonaws.com/ACCOUNT_ID/pismo-account-events.fifo"
+  SQS_TRANSACTION_EVENTS_URL: "https://sqs.REGION.amazonaws.com/ACCOUNT_ID/gbo-transaction-events"
+  SQS_ACCOUNT_EVENTS_URL:     "https://sqs.REGION.amazonaws.com/ACCOUNT_ID/gbo-account-events.fifo"
 
   # OAuth2 / JWT
   JWT_JWKS_URI:   "https://YOUR_IDP_DOMAIN/.well-known/jwks.json"

@@ -11,8 +11,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: pismo-api-ingress
-  namespace: pismo-api
+  name: gbo-api-ingress
+  namespace: gbo-api
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
@@ -27,8 +27,8 @@ metadata:
     alb.ingress.kubernetes.io/healthy-threshold-count: "2"
     alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
     alb.ingress.kubernetes.io/load-balancer-attributes: "idle_timeout.timeout_seconds=60,routing.http.drop_invalid_header_fields.enabled=true"
-    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:REGION:ACCOUNT_ID:regional/webacl/pismo-waf/WAF_ID
-    alb.ingress.kubernetes.io/tags: "Project=pismo-challenge,Environment=production"
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:REGION:ACCOUNT_ID:regional/webacl/gbo-waf/WAF_ID
+    alb.ingress.kubernetes.io/tags: "Project=gbo-challenge,Environment=production"
 spec:
   rules:
     - host: api.YOUR_DOMAIN.com
@@ -38,6 +38,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: pismo-api-service
+                name: gbo-api-service
                 port:
                   number: 8080

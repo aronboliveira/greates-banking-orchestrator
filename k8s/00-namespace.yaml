@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: pismo-api
+  name: gbo-api
   labels:
     # Pod Security Standards — restricted profile enforced at namespace level.
     # See handoff.md §9.10. Every pod must run as non-root, with read-only root
@@ -10,5 +10,5 @@ metadata:
     pod-security.kubernetes.io/enforce-version: v1.32
     pod-security.kubernetes.io/warn: restricted
     pod-security.kubernetes.io/audit: restricted
-    project: pismo-challenge
+    project: gbo-challenge
     environment: production

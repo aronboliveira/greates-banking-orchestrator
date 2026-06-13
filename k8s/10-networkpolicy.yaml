@@ -1,12 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: pismo-api-netpol
-  namespace: pismo-api
+  name: gbo-api-netpol
+  namespace: gbo-api
 spec:
   podSelector:
     matchLabels:
-      app: pismo-api
+      app: gbo-api
   policyTypes:
     - Ingress
     - Egress

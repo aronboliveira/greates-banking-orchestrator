@@ -1,359 +1,604 @@
-# Pismo Challenge API
+# The Greatest Banking Orchestrator
 
-REST API for customer accounts and financial transactions.
-
-<details open>
-<summary><strong>🇺🇸 English (en-US)</strong></summary>
+Portfolio full-stack banking orchestration demo: secure mock JWT login, RBAC, account creation, transaction registration, editable user profiles, BDD backend coverage, and a React dashboard.
 
 <details open>
-<summary><strong>Build, Run and Deploy</strong></summary>
+<summary><strong>English (en-US)</strong></summary>
 
-### Prerequisites
+## What This Is
 
-- Java 21+
-- Docker and Docker Compose
-- Maven 3.9+ (optional, wrapper `./mvnw` is included)
+The Greatest Banking Orchestrator is an agnostic portfolio project based on a small banking domain: accounts, operation types, transactions, and a secure dashboard.
 
-### 1) Build and test
+The repository originally came from a hiring challenge. This version removes company-specific branding and presents the project as a standalone portfolio application.
 
-```bash
-./mvnw clean verify
-```
+## Fastest Boot: Docker Compose
 
-Optional package without tests:
+Prerequisites:
 
-```bash
-./mvnw clean package -DskipTests
-```
+- Docker
+- Docker Compose plugin (`docker compose version`)
 
-### 2) Run locally (dev mode)
-
-Start only PostgreSQL:
+From the repository root:
 
 ```bash
-docker compose up -d db
+docker compose up --build
 ```
 
-Run the API:
+Open:
 
-```bash
-./mvnw spring-boot:run
-```
+- Frontend: `http://localhost:5173`
+- API health: `http://localhost:8080/actuator/health`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-### 3) Run full stack with Docker (recommended)
-
-This picks port `8080` if available, otherwise `8081`.
-
-```bash
-if ss -tln | grep -q ':8080 '; then API_PORT=8081; else API_PORT=8080; fi
-echo "$API_PORT" > /tmp/pismo_api_port
-
-docker compose down --remove-orphans
-API_PORT="$API_PORT" docker compose up -d --build --wait
-docker compose ps
-```
-
-### 4) Validate health and API docs
-
-```bash
-PORT=$(cat /tmp/pismo_api_port 2>/dev/null || echo 8080)
-BASE="http://localhost:$PORT"
-
-curl -i "$BASE/actuator/health"
-curl -i "$BASE/swagger-ui.html"
-curl -i "$BASE/v3/api-docs"
-curl -i "$BASE/v3/api-docs.yaml"
-```
-
-Expected:
-
-- `/actuator/health` -> `200`
-- `/swagger-ui.html` -> `302` redirect (Swagger UI page renders)
-- `/v3/api-docs` -> `200`
-- `/v3/api-docs.yaml` -> `200`
-
-### 5) Deploy
-
-For a Docker-enabled host, deploy by cloning and running compose:
-
-```bash
-git clone <your-github-repo-url>
-cd pismo-challenge-api
-API_PORT=8080 docker compose up -d --build --wait
-```
-
-Update deployment:
-
-```bash
-git pull
-API_PORT=8080 docker compose up -d --build
-```
-
-Stop/cleanup:
+Stop:
 
 ```bash
 docker compose down
-docker compose down -v --remove-orphans
 ```
 
-### 6) Publish to GitHub
+Reset the local PostgreSQL volume:
 
 ```bash
-git add .
-git commit -m "docs: improve bilingual README with run instructions"
-git push origin main
+docker compose down -v
 ```
 
-### 7) Refresh handoff/documentation artifacts
+Compose starts three services:
 
-Use this when preparing a final handoff package for reviewers:
+- `db`: PostgreSQL 17, database `greatest_banking_orchestrator`, user/password `gbo`/`gbo`.
+- `api`: Spring Boot API on `localhost:8080`, waiting for PostgreSQL health.
+- `web`: React/Vite static build served by Nginx on `localhost:5173`, waiting for API health.
+
+If your local ports are occupied:
 
 ```bash
-date -Iseconds > .notes/tees/20260420/updated-at.txt
-git --no-pager log --oneline -40 > .notes/tees/20260420/git-log.txt
-git status --short --branch > .notes/tees/20260420/git-status.txt
-find . -maxdepth 4 | sort > .notes/tees/20260420/fs-tree-v2.txt
-{ ./mvnw -q -DskipTests validate && echo MAVEN_VALIDATE_OK; } > .notes/tees/20260420/maven-validate.txt 2>&1
+DB_PORT=5433 API_PORT=8081 WEB_PORT=5174 VITE_API_BASE_URL=http://localhost:8081 docker compose up --build
 ```
 
-Then update these docs together:
+If you use a different web port, also pass `APP_CORS_ALLOWED_ORIGINS` with that origin.
 
-- `README.md`
-- `.notes/THE_CLI.md`
-- `.notes/.llms/ctx/challenge-context-handoffs/v9_20260420/session_handoff_v9.md`
+## Mock Users
+
+| Username | Password | Role |
+| --- | --- | --- |
+| `super-admin` | `orchestrate-all` | `SUPER_ADMIN` |
+| `admin` | `approve-flow` | `ADMIN` |
+| `user` | `submit-flow` | `USER` |
+
+`super-admin` and `admin` can create accounts. Every authenticated user can create transactions and edit their own profile.
+
+## Native Local Boot
+
+Use this only when you do not want Docker. The backend uses an in-memory H2 database in the `local` profile.
+
+Terminal 1:
+
+```bash
+SPRING_PROFILES_ACTIVE=local bash ./mvnw spring-boot:run
+```
+
+Terminal 2:
+
+```bash
+cd frontend
+VITE_API_BASE_URL=http://localhost:8080 npm run dev -- --port 5173 --host 127.0.0.1 --strictPort
+```
+
+On some external drives, `./mvnw` may fail with `Permission denied`; use `bash ./mvnw ...` as shown above.
+
+## Tests
+
+Backend, including Cucumber BDD and coverage gate:
+
+```bash
+bash ./mvnw clean verify
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm test
+npm run build
+npm run test:e2e
+```
+
+If Playwright browsers are missing:
+
+```bash
+cd frontend
+node node_modules/playwright/cli.js install chromium
+```
+
+Docker Compose smoke check:
+
+```bash
+docker compose up --build -d
+curl -f http://localhost:8080/actuator/health
+curl -I http://localhost:5173
+docker compose down
+```
+
+Conflict-safe smoke check when `5432`, `8080`, or `5173` are already in use:
+
+```bash
+DB_PORT=5433 API_PORT=8081 WEB_PORT=5174 VITE_API_BASE_URL=http://localhost:8081 docker compose up --build -d
+curl -f http://localhost:8081/actuator/health
+curl -I http://localhost:5174
+docker compose down
+```
+
+## Stack
+
+- Backend: Java 21, Spring Boot, Spring MVC, JPA, PostgreSQL, Flyway, Spring Security, local HMAC JWT, Spring Mail, Resilience4j, OpenAPI.
+- BDD: Cucumber for secure API scenarios.
+- Frontend: React 19, TypeScript, Vite, TanStack Query, Redux Toolkit, Bootstrap, Bootstrap Icons, SCSS, DOMPurify, Zod, React Hot Toast.
+- Tests: Maven/JUnit/Cucumber, Jest, Playwright.
+- Deployment: Docker, Docker Compose, Render Blueprint.
+
+## Render Deployment
+
+`render.yaml` defines a Docker web service for the API, a Render PostgreSQL database, a static React site, generated JWT secret, SMTP placeholders, and optional AWS placeholders.
+
+Set these secrets in Render when enabling real email:
+
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+
+Real SMTP sends are intentionally limited to `aronprogamador@gmail.com` by default.
 
 </details>
 
 <details>
-<summary><strong>Project Overview</strong></summary>
+<summary><strong>Português (pt-BR)</strong></summary>
 
-### Goal
+## O Que É
 
-Implement the Phase 1 challenge requirements with clear run instructions, automated tests, Docker support, and OpenAPI documentation.
+The Greatest Banking Orchestrator é um projeto full-stack de portfólio para contas, tipos de operação, transações e um dashboard seguro.
 
-### Main Endpoints
+O repositório nasceu de um desafio técnico, mas esta versão remove a marca original e apresenta a aplicação como um produto agnóstico.
 
-- `POST /accounts` creates an account using a unique document number.
-- `GET /accounts/{accountId}` retrieves account data.
-- `POST /transactions` creates a transaction linked to an existing account.
+## Boot Principal: Docker Compose
 
-### Transaction Rule
+Pré-requisitos: Docker e Docker Compose plugin.
 
-Operation type controls sign normalization:
+Na raiz do repositório:
 
-| ID  | Description          | Stored Sign |
-| --- | -------------------- | ----------- |
-| 1   | PURCHASE             | Negative    |
-| 2   | INSTALLMENT PURCHASE | Negative    |
-| 3   | WITHDRAWAL           | Negative    |
-| 4   | PAYMENT              | Positive    |
+```bash
+docker compose up --build
+```
 
-The client sends a positive amount, and the API applies the proper sign.
+Acesse:
 
-### Stack and Architecture
-
-- Java 21 + Spring Boot 4.0.5 (Web MVC, Data JPA, Validation)
-- PostgreSQL 17
-- Layered design: controller -> service -> repository
-- DTO boundary for requests/responses
-- Strategy pattern (`AmountSignStrategy` + resolver) for operation-type sign rule
-- Resilience4j: retry with exponential backoff, circuit breaker, rate limiter
-- Global exception handling with standardized error payloads
-- OpenAPI/Swagger via springdoc
-- Dockerized API + DB using docker-compose
-- GitHub Actions CI: build, tests, JaCoCo gate, Docker compose smoke test
-
-### Quality Gates
-
-- **JaCoCo coverage gate (enforced at `verify`)**: 100% on instructions, branches, lines, methods, classes.
-- **Test count**: 69 tests across unit, slice (`@WebMvcTest`), integration (`@SpringBootTest`), resilience and concurrent stress suites.
-
-### API Documentation URLs
-
+- Frontend: `http://localhost:5173`
+- Saúde da API: `http://localhost:8080/actuator/health`
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
-- OpenAPI YAML: `http://localhost:8080/v3/api-docs.yaml`
 
-### Companion documentation
-
-- Runtime CLI playbook: `.notes/THE_CLI.md`
-- Session handoff (v9): `.notes/.llms/ctx/challenge-context-handoffs/v9_20260420/session_handoff_v9.md`
-- Recorded command artifacts: `.notes/tees/20260420/`
-
-</details>
-
-</details>
-
-<details>
-<summary><strong>🇧🇷 Português (pt-BR)</strong></summary>
-
-<details open>
-<summary><strong>Build, Run and Deploy</strong></summary>
-
-### Pré-requisitos
-
-- Java 21+
-- Docker e Docker Compose
-- Maven 3.9+ (opcional, o wrapper `./mvnw` já está incluído)
-
-### 1) Build e testes
-
-```bash
-./mvnw clean verify
-```
-
-Empacotamento sem testes (opcional):
-
-```bash
-./mvnw clean package -DskipTests
-```
-
-### 2) Execução local (modo desenvolvimento)
-
-Suba apenas o PostgreSQL:
-
-```bash
-docker compose up -d db
-```
-
-Execute a API:
-
-```bash
-./mvnw spring-boot:run
-```
-
-### 3) Execução completa com Docker (recomendado)
-
-Esse fluxo usa a porta `8080` quando livre e `8081` quando `8080` já está ocupada.
-
-```bash
-if ss -tln | grep -q ':8080 '; then API_PORT=8081; else API_PORT=8080; fi
-echo "$API_PORT" > /tmp/pismo_api_port
-
-docker compose down --remove-orphans
-API_PORT="$API_PORT" docker compose up -d --build --wait
-docker compose ps
-```
-
-### 4) Validação de saúde e documentação
-
-```bash
-PORT=$(cat /tmp/pismo_api_port 2>/dev/null || echo 8080)
-BASE="http://localhost:$PORT"
-
-curl -i "$BASE/actuator/health"
-curl -i "$BASE/swagger-ui.html"
-curl -i "$BASE/v3/api-docs"
-curl -i "$BASE/v3/api-docs.yaml"
-```
-
-Esperado:
-
-- `/actuator/health` -> `200`
-- `/swagger-ui.html` -> `302` (redireciona para a interface do Swagger)
-- `/v3/api-docs` -> `200`
-- `/v3/api-docs.yaml` -> `200`
-
-### 5) Deploy
-
-Em qualquer host com Docker, faça deploy clonando o repositório e subindo o compose:
-
-```bash
-git clone <url-do-seu-repo-no-github>
-cd pismo-challenge-api
-API_PORT=8080 docker compose up -d --build --wait
-```
-
-Atualização de deploy:
-
-```bash
-git pull
-API_PORT=8080 docker compose up -d --build
-```
-
-Parar/limpar ambiente:
+Parar:
 
 ```bash
 docker compose down
-docker compose down -v --remove-orphans
 ```
 
-### 6) Publicação no GitHub
+Resetar o banco local:
 
 ```bash
-git add .
-git commit -m "docs: melhorar README bilíngue com instruções de execução"
-git push origin main
+docker compose down -v
 ```
 
-### 7) Atualizar artefatos de handoff/documentação
-
-Use este bloco ao preparar o pacote final para revisão:
+O Compose sobe PostgreSQL, API Spring Boot e frontend React servido por Nginx. Se as portas estiverem ocupadas:
 
 ```bash
-date -Iseconds > .notes/tees/20260420/updated-at.txt
-git --no-pager log --oneline -40 > .notes/tees/20260420/git-log.txt
-git status --short --branch > .notes/tees/20260420/git-status.txt
-find . -maxdepth 4 | sort > .notes/tees/20260420/fs-tree-v2.txt
-{ ./mvnw -q -DskipTests validate && echo MAVEN_VALIDATE_OK; } > .notes/tees/20260420/maven-validate.txt 2>&1
+DB_PORT=5433 API_PORT=8081 WEB_PORT=5174 VITE_API_BASE_URL=http://localhost:8081 docker compose up --build
 ```
 
-Depois, mantenha estes documentos sincronizados:
+## Usuários Mock
 
-- `README.md`
-- `.notes/THE_CLI.md`
-- `.notes/.llms/ctx/challenge-context-handoffs/v9_20260420/session_handoff_v9.md`
+| Usuário | Senha | Papel |
+| --- | --- | --- |
+| `super-admin` | `orchestrate-all` | `SUPER_ADMIN` |
+| `admin` | `approve-flow` | `ADMIN` |
+| `user` | `submit-flow` | `USER` |
+
+`super-admin` e `admin` criam contas. Todos os usuários autenticados criam transações e editam o próprio perfil.
+
+## Boot Nativo
+
+Sem Docker, use H2 em memória:
+
+```bash
+SPRING_PROFILES_ACTIVE=local bash ./mvnw spring-boot:run
+```
+
+Em outro terminal:
+
+```bash
+cd frontend
+VITE_API_BASE_URL=http://localhost:8080 npm run dev -- --port 5173 --host 127.0.0.1 --strictPort
+```
+
+Em discos externos, `./mvnw` pode falhar com `Permission denied`; use `bash ./mvnw`.
+
+## Testes
+
+```bash
+bash ./mvnw clean verify
+cd frontend
+npm test
+npm run build
+npm run test:e2e
+```
+
+Smoke test com Compose:
+
+```bash
+docker compose up --build -d
+curl -f http://localhost:8080/actuator/health
+curl -I http://localhost:5173
+docker compose down
+```
 
 </details>
 
 <details>
-<summary><strong>Visão Geral do Projeto</strong></summary>
+<summary><strong>Español (es-ES)</strong></summary>
 
-### Objetivo
+## Qué Es
 
-Atender aos requisitos da Fase 1 do desafio: API REST funcional, instruções claras de execução, testes automatizados, suporte a Docker e documentação OpenAPI.
+The Greatest Banking Orchestrator es una aplicación full-stack de portfolio para cuentas, tipos de operación, transacciones y un dashboard seguro.
 
-### Endpoints Principais
+El repositorio partió de un reto técnico, pero esta versión elimina la marca original y presenta el sistema como un producto agnóstico.
 
-- `POST /accounts` cria uma conta com número de documento único.
-- `GET /accounts/{accountId}` consulta uma conta existente.
-- `POST /transactions` cria transações vinculadas a uma conta válida.
+## Arranque Principal: Docker Compose
 
-### Regra de Negócio de Sinal
+Requisitos: Docker y Docker Compose plugin.
 
-O tipo da operação define o sinal armazenado:
+Desde la raíz del repositorio:
 
-| ID  | Descrição            | Sinal |
-| --- | -------------------- | ----- |
-| 1   | PURCHASE             | -     |
-| 2   | INSTALLMENT PURCHASE | -     |
-| 3   | WITHDRAWAL           | -     |
-| 4   | PAYMENT              | +     |
+```bash
+docker compose up --build
+```
 
-O cliente envia valor positivo e a API normaliza para o sinal correto.
+Abrir:
 
-### Stack e Arquitetura
-
-- Java 21 + Spring Boot 4.0.5 (Web MVC, Data JPA, Validation)
-- PostgreSQL 17
-- Arquitetura em camadas: controller -> service -> repository
-- DTOs para entrada/saída da API
-- Tratamento global de exceções com payload padronizado
-- OpenAPI/Swagger com springdoc
-- API e banco containerizados com docker-compose
-
-### URLs da Documentação
-
+- Frontend: `http://localhost:5173`
+- Salud de la API: `http://localhost:8080/actuator/health`
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
-- OpenAPI YAML: `http://localhost:8080/v3/api-docs.yaml`
 
-### Documentos complementares
+Detener:
 
-- Playbook de execução por CLI: `.notes/THE_CLI.md`
-- Handoff da sessão (v9): `.notes/.llms/ctx/challenge-context-handoffs/v9_20260420/session_handoff_v9.md`
-- Artefatos de comandos gravados: `.notes/tees/20260420/`
+```bash
+docker compose down
+```
+
+Reiniciar los datos locales:
+
+```bash
+docker compose down -v
+```
+
+Compose inicia PostgreSQL, API Spring Boot y frontend React servido por Nginx. Si los puertos están ocupados:
+
+```bash
+DB_PORT=5433 API_PORT=8081 WEB_PORT=5174 VITE_API_BASE_URL=http://localhost:8081 docker compose up --build
+```
+
+## Usuarios Mock
+
+| Usuario | Contraseña | Rol |
+| --- | --- | --- |
+| `super-admin` | `orchestrate-all` | `SUPER_ADMIN` |
+| `admin` | `approve-flow` | `ADMIN` |
+| `user` | `submit-flow` | `USER` |
+
+`super-admin` y `admin` pueden crear cuentas. Todos los usuarios autenticados pueden crear transacciones y editar su perfil.
+
+## Arranque Nativo
+
+Sin Docker, use H2 en memoria:
+
+```bash
+SPRING_PROFILES_ACTIVE=local bash ./mvnw spring-boot:run
+```
+
+En otro terminal:
+
+```bash
+cd frontend
+VITE_API_BASE_URL=http://localhost:8080 npm run dev -- --port 5173 --host 127.0.0.1 --strictPort
+```
+
+En discos externos, `./mvnw` puede fallar con `Permission denied`; use `bash ./mvnw`.
+
+## Pruebas
+
+```bash
+bash ./mvnw clean verify
+cd frontend
+npm test
+npm run build
+npm run test:e2e
+```
+
+Smoke test con Compose:
+
+```bash
+docker compose up --build -d
+curl -f http://localhost:8080/actuator/health
+curl -I http://localhost:5173
+docker compose down
+```
 
 </details>
+
+<details>
+<summary><strong>Deutsch (de-DE)</strong></summary>
+
+## Überblick
+
+The Greatest Banking Orchestrator ist ein Full-Stack-Portfolio-Projekt für Konten, Operationstypen, Transaktionen und ein geschütztes Dashboard.
+
+Das Repository stammt ursprünglich aus einer technischen Challenge. Diese Version entfernt die alte Markenbindung und präsentiert die Anwendung als neutrales Portfolio-Projekt.
+
+## Hauptstart: Docker Compose
+
+Voraussetzungen: Docker und Docker Compose Plugin.
+
+Im Repository-Root:
+
+```bash
+docker compose up --build
+```
+
+Öffnen:
+
+- Frontend: `http://localhost:5173`
+- API Health: `http://localhost:8080/actuator/health`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+Stoppen:
+
+```bash
+docker compose down
+```
+
+Lokale Daten zurücksetzen:
+
+```bash
+docker compose down -v
+```
+
+Compose startet PostgreSQL, die Spring-Boot-API und das React-Frontend über Nginx. Wenn Ports belegt sind:
+
+```bash
+DB_PORT=5433 API_PORT=8081 WEB_PORT=5174 VITE_API_BASE_URL=http://localhost:8081 docker compose up --build
+```
+
+## Mock-Benutzer
+
+| Benutzer | Passwort | Rolle |
+| --- | --- | --- |
+| `super-admin` | `orchestrate-all` | `SUPER_ADMIN` |
+| `admin` | `approve-flow` | `ADMIN` |
+| `user` | `submit-flow` | `USER` |
+
+`super-admin` und `admin` können Konten erstellen. Alle angemeldeten Benutzer können Transaktionen anlegen und ihr Profil bearbeiten.
+
+## Nativer Start
+
+Ohne Docker wird H2 im Speicher verwendet:
+
+```bash
+SPRING_PROFILES_ACTIVE=local bash ./mvnw spring-boot:run
+```
+
+In einem zweiten Terminal:
+
+```bash
+cd frontend
+VITE_API_BASE_URL=http://localhost:8080 npm run dev -- --port 5173 --host 127.0.0.1 --strictPort
+```
+
+Auf externen Laufwerken kann `./mvnw` mit `Permission denied` fehlschlagen; verwenden Sie `bash ./mvnw`.
+
+## Tests
+
+```bash
+bash ./mvnw clean verify
+cd frontend
+npm test
+npm run build
+npm run test:e2e
+```
+
+Compose Smoke Test:
+
+```bash
+docker compose up --build -d
+curl -f http://localhost:8080/actuator/health
+curl -I http://localhost:5173
+docker compose down
+```
+
+</details>
+
+<details>
+<summary><strong>Français (fr)</strong></summary>
+
+## Présentation
+
+The Greatest Banking Orchestrator est une application full-stack de portfolio pour les comptes, les types d'opération, les transactions et un tableau de bord sécurisé.
+
+Le dépôt vient à l'origine d'un défi technique. Cette version retire l'ancienne marque et présente l'application comme un projet de portfolio autonome.
+
+## Démarrage Principal : Docker Compose
+
+Prérequis : Docker et Docker Compose plugin.
+
+À la racine du dépôt :
+
+```bash
+docker compose up --build
+```
+
+Ouvrir :
+
+- Frontend : `http://localhost:5173`
+- Santé de l'API : `http://localhost:8080/actuator/health`
+- Swagger UI : `http://localhost:8080/swagger-ui.html`
+
+Arrêter :
+
+```bash
+docker compose down
+```
+
+Réinitialiser la base locale :
+
+```bash
+docker compose down -v
+```
+
+Compose lance PostgreSQL, l'API Spring Boot et le frontend React servi par Nginx. Si les ports sont occupés :
+
+```bash
+DB_PORT=5433 API_PORT=8081 WEB_PORT=5174 VITE_API_BASE_URL=http://localhost:8081 docker compose up --build
+```
+
+## Utilisateurs Mock
+
+| Utilisateur | Mot de passe | Rôle |
+| --- | --- | --- |
+| `super-admin` | `orchestrate-all` | `SUPER_ADMIN` |
+| `admin` | `approve-flow` | `ADMIN` |
+| `user` | `submit-flow` | `USER` |
+
+`super-admin` et `admin` peuvent créer des comptes. Tous les utilisateurs authentifiés peuvent créer des transactions et modifier leur profil.
+
+## Démarrage Natif
+
+Sans Docker, utilisez H2 en mémoire :
+
+```bash
+SPRING_PROFILES_ACTIVE=local bash ./mvnw spring-boot:run
+```
+
+Dans un autre terminal :
+
+```bash
+cd frontend
+VITE_API_BASE_URL=http://localhost:8080 npm run dev -- --port 5173 --host 127.0.0.1 --strictPort
+```
+
+Sur certains disques externes, `./mvnw` peut échouer avec `Permission denied`; utilisez `bash ./mvnw`.
+
+## Tests
+
+```bash
+bash ./mvnw clean verify
+cd frontend
+npm test
+npm run build
+npm run test:e2e
+```
+
+Smoke test Compose :
+
+```bash
+docker compose up --build -d
+curl -f http://localhost:8080/actuator/health
+curl -I http://localhost:5173
+docker compose down
+```
+
+</details>
+
+<details>
+<summary><strong>中文 (zh)</strong></summary>
+
+## 项目说明
+
+The Greatest Banking Orchestrator 是一个作品集全栈项目，覆盖账户、操作类型、交易和受保护的仪表盘。
+
+该仓库最初来自技术挑战。本版本移除了原公司的品牌信息，将应用呈现为独立作品集项目。
+
+## 推荐启动方式：Docker Compose
+
+前置要求：Docker 和 Docker Compose plugin。
+
+在仓库根目录运行：
+
+```bash
+docker compose up --build
+```
+
+打开：
+
+- 前端：`http://localhost:5173`
+- API 健康检查：`http://localhost:8080/actuator/health`
+- Swagger UI：`http://localhost:8080/swagger-ui.html`
+
+停止：
+
+```bash
+docker compose down
+```
+
+重置本地 PostgreSQL 数据：
+
+```bash
+docker compose down -v
+```
+
+Compose 会启动 PostgreSQL、Spring Boot API，以及由 Nginx 提供服务的 React 前端。如果端口被占用：
+
+```bash
+DB_PORT=5433 API_PORT=8081 WEB_PORT=5174 VITE_API_BASE_URL=http://localhost:8081 docker compose up --build
+```
+
+## 模拟用户
+
+| 用户名 | 密码 | 角色 |
+| --- | --- | --- |
+| `super-admin` | `orchestrate-all` | `SUPER_ADMIN` |
+| `admin` | `approve-flow` | `ADMIN` |
+| `user` | `submit-flow` | `USER` |
+
+`super-admin` 和 `admin` 可以创建账户。所有已登录用户都可以创建交易并编辑自己的资料。
+
+## 本地原生命令
+
+不使用 Docker 时，可以使用内存 H2 数据库：
+
+```bash
+SPRING_PROFILES_ACTIVE=local bash ./mvnw spring-boot:run
+```
+
+另一个终端运行：
+
+```bash
+cd frontend
+VITE_API_BASE_URL=http://localhost:8080 npm run dev -- --port 5173 --host 127.0.0.1 --strictPort
+```
+
+在某些外接硬盘上，`./mvnw` 可能因为 `Permission denied` 失败；请使用 `bash ./mvnw`。
+
+## 测试
+
+```bash
+bash ./mvnw clean verify
+cd frontend
+npm test
+npm run build
+npm run test:e2e
+```
+
+Compose 冒烟测试：
+
+```bash
+docker compose up --build -d
+curl -f http://localhost:8080/actuator/health
+curl -I http://localhost:5173
+docker compose down
+```
 
 </details>
