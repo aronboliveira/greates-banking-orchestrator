@@ -141,9 +141,9 @@ jobs:
       - name: Build and start stack
         run: API_PORT=8080 docker compose up -d --build --wait
 
-      - name: Assert both containers are healthy
+      - name: Assert compose services are healthy
         run: |
-          for svc in db api; do
+          for svc in db api web; do
             health=$(docker inspect \
               --format='{{.State.Health.Status}}' \
               "$(docker compose ps -q "$svc")")
@@ -170,17 +170,25 @@ jobs:
       - name: Smoke — happy-path account and transaction flow
         run: |
           set -euo pipefail
+          token=$(curl -fsS -X POST http://localhost:8080/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"username":"admin","password":"approve-flow"}' \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+          auth_header="Authorization: Bearer ${token}"
+
           # varchar(11) — take the last 11 digits of the nanosecond timestamp
           DOC=$(date +%s%N | tail -c 12 | head -c 11)
 
           created=$(curl -fsS -X POST http://localhost:8080/accounts \
+            -H "$auth_header" \
             -H 'Content-Type: application/json' \
             -d "{\"document_number\":\"$DOC\"}")
           echo "Created account: $created"
           account_id=$(echo "$created" \
             | python3 -c 'import json,sys; print(json.load(sys.stdin)["account_id"])')
 
-          fetched=$(curl -fsS "http://localhost:8080/accounts/${account_id}")
+          fetched=$(curl -fsS "http://localhost:8080/accounts/${account_id}" \
+            -H "$auth_header")
           ACCOUNT_ID=$account_id FETCHED=$fetched python3 - <<'EOF'
           import json, os
           d = json.loads(os.environ["FETCHED"])
@@ -191,6 +199,7 @@ jobs:
 
           for op in 1 2 3; do
             resp=$(curl -fsS -X POST http://localhost:8080/transactions \
+              -H "$auth_header" \
               -H 'Content-Type: application/json' \
               -d "{\"account_id\":${account_id},\"operation_type_id\":${op},\"amount\":10.00}")
             OP=$op RESP=$resp python3 - <<'EOF'
@@ -203,6 +212,7 @@ jobs:
           done
 
           resp=$(curl -fsS -X POST http://localhost:8080/transactions \
+            -H "$auth_header" \
             -H 'Content-Type: application/json' \
             -d "{\"account_id\":${account_id},\"operation_type_id\":4,\"amount\":100.00}")
           RESP=$resp python3 - <<'EOF'
@@ -215,9 +225,15 @@ jobs:
       - name: Smoke — error-scenario HTTP status assertions
         run: |
           set -euo pipefail
+          token=$(curl -fsS -X POST http://localhost:8080/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"username":"admin","password":"approve-flow"}' \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+          auth_header="Authorization: Bearer ${token}"
 
           # 404 — non-existent account
           code=$(curl -o /dev/null -s -w "%{http_code}" \
+            -H "$auth_header" \
             http://localhost:8080/accounts/999999)
           [ "$code" = "404" ] || { echo "FAIL: GET /accounts/999999 expected 404, got $code"; exit 1; }
           echo "OK [GET /accounts/999999] → $code"
@@ -225,6 +241,7 @@ jobs:
           # 400 — missing document_number
           code=$(curl -o /dev/null -s -w "%{http_code}" \
             -X POST http://localhost:8080/accounts \
+            -H "$auth_header" \
             -H 'Content-Type: application/json' -d '{}')
           [ "$code" = "400" ] || { echo "FAIL: POST /accounts (empty) expected 400, got $code"; exit 1; }
           echo "OK [POST /accounts (empty body)] → $code"
@@ -232,6 +249,7 @@ jobs:
           # 400 — negative amount
           code=$(curl -o /dev/null -s -w "%{http_code}" \
             -X POST http://localhost:8080/transactions \
+            -H "$auth_header" \
             -H 'Content-Type: application/json' \
             -d '{"account_id":1,"operation_type_id":1,"amount":-50.0}')
           [ "$code" = "400" ] || { echo "FAIL: POST /transactions (amount=-50) expected 400, got $code"; exit 1; }
@@ -240,6 +258,7 @@ jobs:
           # 400 — zero amount (@Positive rejects 0)
           code=$(curl -o /dev/null -s -w "%{http_code}" \
             -X POST http://localhost:8080/transactions \
+            -H "$auth_header" \
             -H 'Content-Type: application/json' \
             -d '{"account_id":1,"operation_type_id":1,"amount":0}')
           [ "$code" = "400" ] || { echo "FAIL: POST /transactions (amount=0) expected 400, got $code"; exit 1; }
@@ -248,6 +267,7 @@ jobs:
           # 404 — transaction for non-existent account
           code=$(curl -o /dev/null -s -w "%{http_code}" \
             -X POST http://localhost:8080/transactions \
+            -H "$auth_header" \
             -H 'Content-Type: application/json' \
             -d '{"account_id":999999,"operation_type_id":1,"amount":10.0}')
           [ "$code" = "404" ] || { echo "FAIL: POST /transactions (account=999999) expected 404, got $code"; exit 1; }
@@ -256,10 +276,12 @@ jobs:
           # 422 — duplicate document_number (varchar(11) — last 11 digits)
           DOC=$(date +%s%N | tail -c 12 | head -c 11)
           curl -fsS -X POST http://localhost:8080/accounts \
+            -H "$auth_header" \
             -H 'Content-Type: application/json' \
             -d "{\"document_number\":\"${DOC}\"}" > /dev/null
           code=$(curl -o /dev/null -s -w "%{http_code}" \
             -X POST http://localhost:8080/accounts \
+            -H "$auth_header" \
             -H 'Content-Type: application/json' \
             -d "{\"document_number\":\"${DOC}\"}")
           [ "$code" = "422" ] || { echo "FAIL: POST /accounts (duplicate) expected 422, got $code"; exit 1; }
@@ -295,16 +317,27 @@ jobs:
 
       - name: Smoke — rate-limiter triggers HTTP 429
         run: |
+          token=$(curl -fsS -X POST http://localhost:8080/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"username":"admin","password":"approve-flow"}' \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+          export TOKEN="$token"
           python3 - <<'EOF'
+          import os
           import urllib.request, urllib.error, threading
           from collections import Counter
 
           results = []
           lock = threading.Lock()
+          token = os.environ["TOKEN"]
 
           def fetch(_):
+              request = urllib.request.Request(
+                  "http://localhost:8080/accounts/1",
+                  headers={"Authorization": f"Bearer {token}"}
+              )
               try:
-                  urllib.request.urlopen("http://localhost:8080/accounts/1", timeout=3)
+                  urllib.request.urlopen(request, timeout=3)
                   with lock:
                       results.append(200)
               except urllib.error.HTTPError as exc:
@@ -339,10 +372,11 @@ jobs:
         run: docker compose down -v --remove-orphans
 
   # ──────────────────────────────────────────────────────────────────────────
-  # ECR Push — runs only on push to main, not on PRs.
+  # ECR Push — optional. Set repository variable ENABLE_AWS_DEPLOY=true
+  # to run it on pushes to main.
   #
   # OPERATOR ACTION before this job will succeed:
-  #   1. Create the ECR repository  pismo-challenge-api  (handoff.md §4.1).
+  #   1. Create the ECR repository greatest-banking-orchestrator-api.
   #   2. Create the IAM role        GitHubActionsECRRole (aws-policies-and-manifests.json
   #      → iam.github_actions_ecr_push_policy). Replace YOUR_ORG with your GitHub org.
   #   3. Add three GitHub repository secrets at Settings → Secrets and variables → Actions:
@@ -356,7 +390,7 @@ jobs:
     name: Push image to ECR
     runs-on: ubuntu-latest
     needs: docker-smoke
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && vars.ENABLE_AWS_DEPLOY == 'true'
     permissions:
       id-token: write
       contents: read
@@ -394,13 +428,14 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           IMAGE_TAG:    ${{ steps.meta.outputs.image_tag }}
         run: |
-          docker build -t "$ECR_REGISTRY/pismo-challenge-api:$IMAGE_TAG" \
-                       -t "$ECR_REGISTRY/pismo-challenge-api:latest" .
-          docker push "$ECR_REGISTRY/pismo-challenge-api:$IMAGE_TAG"
-          docker push "$ECR_REGISTRY/pismo-challenge-api:latest"
+          docker build -t "$ECR_REGISTRY/greatest-banking-orchestrator-api:$IMAGE_TAG" \
+                       -t "$ECR_REGISTRY/greatest-banking-orchestrator-api:latest" .
+          docker push "$ECR_REGISTRY/greatest-banking-orchestrator-api:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/greatest-banking-orchestrator-api:latest"
 
   # ──────────────────────────────────────────────────────────────────────────
-  # EKS Deploy — runs only on push to main, after ECR push.
+  # EKS Deploy — optional. Set repository variable ENABLE_AWS_DEPLOY=true
+  # to run it on pushes to main after ECR push.
   #
   # OPERATOR ACTION before this job will succeed:
   #   1. Create EKS cluster (handoff.md §9.1) and node group (§9.2).
@@ -409,17 +444,17 @@ jobs:
   #      (same trust block, attach an inline policy that allows eks:DescribeCluster
   #      and the ability to assume the kubectl access entry — see handoff.md §12.2).
   #   3. Create EKS access entry mapping that role to a Kubernetes RBAC role
-  #      with edit permissions on the pismo-api namespace.
+  #      with edit permissions on the gbo-api namespace.
   #   4. Apply all manifests from k8s/ once manually (this job ONLY rolls the
   #      Deployment image; it does not re-apply manifests).
   #   5. Replace placeholders (REGION, ACCOUNT_ID, CERT_ARN, WAF_ARN, etc.) in k8s/.
-  #   6. Add GitHub secret  CLUSTER_NAME  (= pismo-api-cluster).
+  #   6. Add GitHub secret  CLUSTER_NAME  (= gbo-api-cluster).
   # ──────────────────────────────────────────────────────────────────────────
   deploy-to-eks:
     name: Deploy to EKS
     runs-on: ubuntu-latest
     needs: push-to-ecr
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && vars.ENABLE_AWS_DEPLOY == 'true'
     environment: production
     permissions:
       id-token: write
@@ -445,12 +480,12 @@ jobs:
           IMAGE_TAG:    ${{ needs.push-to-ecr.outputs.image_tag }}
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
-          kubectl set image deployment/pismo-api \
-            api="${ECR_REGISTRY}/pismo-challenge-api:${IMAGE_TAG}" \
-            -n pismo-api
-          kubectl rollout status deployment/pismo-api -n pismo-api --timeout=5m
+          kubectl set image deployment/gbo-api \
+            api="${ECR_REGISTRY}/greatest-banking-orchestrator-api:${IMAGE_TAG}" \
+            -n gbo-api
+          kubectl rollout status deployment/gbo-api -n gbo-api --timeout=5m
 
       - name: Verify deployment health
         run: |
-          kubectl get deployment pismo-api -n pismo-api
-          kubectl get pods -n pismo-api -l app=pismo-api
+          kubectl get deployment gbo-api -n gbo-api
+          kubectl get pods -n gbo-api -l app=gbo-api
